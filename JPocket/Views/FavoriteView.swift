@@ -77,17 +77,21 @@ struct FavoriteView: View {
             }
             .navigationTitle("Favorites")
             .navigationBarItems(trailing: toolbarContent)
+            .onChange(of: showingQuantitySelector) { isShowing in
+                if !isShowing {
+                    quantity = 1
+                }
+            }
             .sheet(isPresented: $showingQuantitySelector) {
                 if let product = selectedProduct {
                     QuantityInputView(
                         product: product,
                         mode: .sheet,
-                        quantity: $quantity,
-                        onQuantityChange: { newQuantity in
-                            cartViewModel.addToCart(product: product, quantity: newQuantity)
-                            showingQuantitySelector = false
-                        }
-                    )
+                        quantity: $quantity
+                    ) { newQuantity in
+                        cartViewModel.addToCart(product: product, quantity: newQuantity)
+                        showingQuantitySelector = false
+                    }
                 }
             }
             .sheet(isPresented: $showingShareSheet) {

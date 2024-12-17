@@ -12,7 +12,6 @@ struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @State private var showingSidebar = false
     @State private var selectedProduct: ProductModel?
-    @State private var showingQuantitySelector = false
     @State private var searchText = ""
     @EnvironmentObject var cartViewModel: CartViewModel
     @State private var quantity = 1
@@ -23,6 +22,17 @@ struct HomeView: View {
     var body: some View {
         NavigationView {
             mainContent
+        }
+        .sheet(item: $selectedProduct) { product in
+            QuantityInputView(
+                product: product,
+                mode: .sheet,
+                quantity: $quantity
+            ) { newQuantity in
+                cartViewModel.addToCart(product: product, quantity: newQuantity)
+                selectedProduct = nil
+                quantity = 1
+            }
         }
     }
     
@@ -50,9 +60,6 @@ struct HomeView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(viewModel.error?.localizedDescription ?? "")
-        }
-        .sheet(isPresented: $showingQuantitySelector) {
-            quantityInputSheet
         }
     }
     
@@ -118,8 +125,8 @@ struct HomeView: View {
                 ForEach(filteredProducts) { product in
                     NavigationLink(destination: ProductDetailView(product: product)) {
                         CommonProductView(product: product) {
+                            quantity = 1
                             selectedProduct = product
-                            showingQuantitySelector = true
                         }
                         .environmentObject(favoriteViewModel)
                     }
@@ -175,23 +182,6 @@ struct HomeView: View {
             Image(systemName: "arrow.clockwise")
         }
         .disabled(viewModel.isLoading)
-    }
-    
-    private var quantityInputSheet: some View {
-        Group {
-            if let product = selectedProduct {
-                QuantityInputView(
-                    product: product,
-                    mode: .sheet,
-                    quantity: $quantity,
-                    onQuantityChange: { newQuantity in
-                        cartViewModel.addToCart(product: product, quantity: newQuantity)
-                        showingQuantitySelector = false
-                        quantity = 1
-                    }
-                )
-            }
-        }
     }
     
     private var errorBinding: Binding<Bool> {
