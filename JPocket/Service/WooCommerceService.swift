@@ -8,9 +8,9 @@
 import Foundation
 
 class WooCommerceService {
-    let baseURL = "https://jpocket.com.au/wp-json/wc/v3"
-    private let consumerKey = "ck_6118500594b7813e1934b3d550cd8dc1e322a4ab"
-    private let consumerSecret = "cs_25ba41dd0f07c6c52933a3b1b802eb21eb122e33"
+    let baseURL = APIConfig.baseURL
+    let consumerKey = getFromKeychain(key: "consumerKey")
+    let consumerSecret = getFromKeychain(key: "consumerSecret")
     
     static let shared = WooCommerceService()
     
@@ -162,7 +162,7 @@ class WooCommerceService {
     func getBestSellingProducts(page: Int = 1, perPage: Int = 100)  async throws -> [ProductModel] {
             var components = URLComponents(string: "\(baseURL)/products")!
             components.queryItems = [
-                URLQueryItem(name: "category", value: APIConfig.HotTopSellerID),
+                URLQueryItem(name: "category", value: String(APIConfig.HotTopSellerID)),
                 URLQueryItem(name: "page", value: "\(page)"),
                 URLQueryItem(name: "per_page", value: "\(perPage)")
             ]

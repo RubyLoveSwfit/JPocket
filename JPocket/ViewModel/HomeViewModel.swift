@@ -155,7 +155,7 @@ class HomeViewModel: ObservableObject {
         
         // Set initial products based on cached state
         if !selectedCategories.isEmpty {
-            if selectedCategories.contains(where: { $0.id == 15 }) {
+            if selectedCategories.contains(where: { $0.id == APIConfig.HotTopSellerID }) {
                 products = bestSellingProducts
             } else {
                 let filtered = allProducts.filter { product in
@@ -173,7 +173,7 @@ class HomeViewModel: ObservableObject {
         
         // Only default to Best Selling if no cached selection exists AND no products loaded
         if selectedCategories.isEmpty && products.isEmpty,
-           let bestSelling = categories.first(where: { $0.id == 15 }) {
+           let bestSelling = categories.first(where: { $0.id == APIConfig.HotTopSellerID }) {
             selectedCategories.insert(bestSelling)
         }
     }
@@ -203,7 +203,7 @@ class HomeViewModel: ObservableObject {
         let nextPage = (products.count / pageSize) + 1
         
         // If showing best sellers
-        if selectedCategories.contains(where: { $0.id == 15 }) {
+        if selectedCategories.contains(where: { $0.id == APIConfig.HotTopSellerID }) {
             await loadMoreBestSellers(page: nextPage)
         }
         // If categories are selected
@@ -284,7 +284,7 @@ class HomeViewModel: ObservableObject {
                 categories = fetchedCategories
                 // Only select Best Selling if no selection exists
                 if selectedCategories.isEmpty,
-                   let bestSelling = fetchedCategories.first(where: { $0.id == 15 }) {
+                   let bestSelling = fetchedCategories.first(where: { $0.id == APIConfig.HotTopSellerID }) {
                     selectedCategories.insert(bestSelling)
                 }
             }
@@ -320,7 +320,7 @@ class HomeViewModel: ObservableObject {
         let nextPage = (products.count / pageSize) + 1
         
         // If showing best sellers (ID 15)
-        if selectedCategories.contains(where: { $0.id == 15 }) {
+        if selectedCategories.contains(where: { $0.id == APIConfig.HotTopSellerID }) {
             await loadMoreBestSellers(page: nextPage)
         }
         // If categories are selected
@@ -343,7 +343,7 @@ class HomeViewModel: ObservableObject {
             } else {
                 withAnimation {
                     bestSellingProducts.append(contentsOf: newProducts)
-                    if selectedCategories.contains(where: { $0.id == 15 }) {
+                    if selectedCategories.contains(where: { $0.id == APIConfig.HotTopSellerID }) {
                         products.append(contentsOf: newProducts)
                     }
                 }
@@ -406,7 +406,7 @@ class HomeViewModel: ObservableObject {
         products.removeAll()
         
         // If Best Selling is selected
-        if selectedCategories.contains(where: { $0.id == 15 }) {
+        if selectedCategories.contains(where: { $0.id == APIConfig.HotTopSellerID }) {
             if bestSellingProducts.isEmpty {
                 Task {
                     await loadBestSelling()
@@ -476,7 +476,7 @@ class HomeViewModel: ObservableObject {
             
             withAnimation {
                 bestSellingProducts = bestSelling
-                if selectedCategories.contains(where: { $0.id == 15 }) {
+                if selectedCategories.contains(where: { $0.id == APIConfig.HotTopSellerID }) {
                     products = bestSelling
                 }
                 hasMorePages = bestSelling.count == pageSize
