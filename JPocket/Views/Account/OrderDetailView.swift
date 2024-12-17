@@ -9,48 +9,72 @@ import Foundation
 import SwiftUI
 
 struct OrderDetailView: View {
+    @EnvironmentObject var viewModel: AccountViewModel
+    @StateObject private var orderViewModel = OrderViewModel()
+    
+    var body: some View {
+        Group {
+            if orderViewModel.isLoading {
+                ProgressView()
+            } else if orderViewModel.orders.isEmpty {
+                EmptyOrderView()
+            } else {
+                List {
+                    ForEach(orderViewModel.orders) { order in
+                        NavigationLink(destination: OrderItemsView(order: order)) {
+                            OrderRow(order: order)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Order History")
+        .task {
+            if let email = viewModel.user?.email {
+                await orderViewModel.fetchOrders(email: email)
+            }
+        }
+        .alert("Error", isPresented: .constant(orderViewModel.errorMessage != nil)) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(orderViewModel.errorMessage ?? "")
+        }
+    }
+}
+
+struct OrderItemsView: View {
     let order: OrderModel
     
     var body: some View {
         List {
-            Section(header: Text("Order Information")) {
-                InfoRow(title: "Order Number", value: "#\(order.id)")
-                InfoRow(title: "Date", value: order.dateCreated.formatted(date: .long, time: .shortened))
-                InfoRow(title: "Status", value: order.status.capitalized)
-                InfoRow(title: "Total", value: String(format: "$%.2f", order.total))
+            Section(header: Text("Order Details")) {
+                DetailRow(label: "Order Number", value: "#\(order.id)")
+                DetailRow(label: "Status", value: order.status.capitalized)
+                DetailRow(label: "Total", value: String(format: "$%.2f", order.total))
             }
             
             Section(header: Text("Items")) {
                 ForEach(order.lineItems) { item in
                     HStack {
-                        VStack(alignment: .leading) {
-                            Text(item.name)
-                                .font(.headline)
-                            Text("Quantity: \(item.quantity)")
-                                .foregroundColor(.gray)
-                        }
-                        
+                        Text(item.name)
                         Spacer()
-                        
-                        Text(String(format: "$%.2f", item.price))
-                            .bold()
+                        Text("\(item.quantity)x")
+                        Text(item.total)
                     }
-                    .padding(.vertical, 4)
                 }
             }
         }
-        .navigationTitle("Order Details")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Order #\(order.id)")
     }
 }
 
-private struct InfoRow: View {
-    let title: String
+struct DetailRow: View {
+    let label: String
     let value: String
     
     var body: some View {
         HStack {
-            Text(title)
+            Text(label)
                 .foregroundColor(.gray)
             Spacer()
             Text(value)
@@ -59,18 +83,39 @@ private struct InfoRow: View {
     }
 }
 
-//struct OrderDetailView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        NavigationView {
-//            OrderDetailView(order: Order(
-//                id: 1234,
-//                status: "processing",
-//                dateCreated: Date(),
-//                total: 99.99,
-//                lineItems: [
-//                    OrderItem(id: 1, name: "Sample Product", quantity: 2, total: "49.99", price: 49.99)
-//                ]
-//            ))
-//        }
-//    }
-//}
+struct EmptyOrderView: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "doc.text")
+                .font(.system(size: 60))
+                .foregroundColor(.gray)
+            
+            Text("No Orders Yet")
+                .font(.title2)
+                .bold()
+            
+            Text("Your order history will appear here")
+                .foregroundColor(.gray)
+        }
+    }
+}
+
+struct OrderRow: View {
+    let order: OrderModel
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Order #\(order.id)")
+                .font(.headline)
+            
+            Text(order.status.capitalized)
+                .font(.subheadline)
+                .foregroundColor(.gray)
+            
+            Text("$\(order.total, specifier: "%.2f")")
+                .font(.subheadline)
+                .bold()
+        }
+        .padding(.vertical, 4)
+    }
+}

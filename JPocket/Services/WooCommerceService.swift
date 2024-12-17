@@ -9,8 +9,8 @@ import Foundation
 
 class WooCommerceService {
     let baseURL = APIConfig.baseURL
-    let consumerKey = getFromKeychain(key: "consumerKey")
-    let consumerSecret = getFromKeychain(key: "consumerSecret")
+    let consumerKey = APIConfig.consumerKey
+    let consumerSecret = APIConfig.consumerSecret
     
     static let shared = WooCommerceService()
     
@@ -26,39 +26,7 @@ class WooCommerceService {
         request.httpMethod = "GET"
         return request
     }
-    
-    func getCurrentUser() async throws -> UserProfileModel {
-        guard let url = URL(string: "\(baseURL)/customers/me") else {
-            throw NetworkError.invalidURL
-        }
-        
-        let request = createAuthRequest(for: url)
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.networkError
-        }
-        
-        switch httpResponse.statusCode {
-        case 200:
-            let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
-            decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode(UserProfileModel.self, from: data)
-        case 401:
-            throw NetworkError.authenticationError
-        case 403:
-            throw NetworkError.unauthorized
-        default:
-            throw NetworkError.serverError(httpResponse.statusCode)
-        }
-    }
-    
-    func updateProfile(firstName: String, lastName: String) async throws -> UserProfileModel {
-        // Implement profile update
-        throw NetworkError.networkError // Placeholder
-    }
-    
+
     func getCategories(page: Int = 1, perPage: Int = 100) async throws -> [CategoryModel] {
         var components = URLComponents(string: "\(baseURL)/products/categories")!
         components.queryItems = [
@@ -224,33 +192,6 @@ class WooCommerceService {
         }
     }
     
-    func getOrders() async throws -> [OrderModel] {
-        guard let url = URL(string: "\(baseURL)/orders") else {
-            throw NetworkError.invalidURL
-        }
-        
-        let request = createAuthRequest(for: url)
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetworkError.networkError
-        }
-        
-        switch httpResponse.statusCode {
-        case 200:
-            let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
-            decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode([OrderModel].self, from: data)
-        case 401:
-            throw NetworkError.authenticationError
-        case 403:
-            throw NetworkError.unauthorized
-        default:
-            throw NetworkError.serverError(httpResponse.statusCode)
-        }
-    }
-    
     func signIn(email: String, password: String) async throws -> String {
         var components = URLComponents(string: "\(baseURL)/auth/login")!
         
@@ -373,6 +314,76 @@ class WooCommerceService {
             throw NetworkError.validationError("Email already exists")
         case 401:
             throw NetworkError.authenticationError
+        default:
+            throw NetworkError.serverError(httpResponse.statusCode)
+        }
+    }
+    
+    func createOrder(_ orderRequest: OrderRequest) async throws -> OrderModel {
+        var components = URLComponents(string: "\(baseURL)/orders")!
+        
+        guard let url = components.url else {
+            throw NetworkError.invalidURL
+        }
+        
+        var request = createAuthRequest(for: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Encode the order request
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        request.httpBody = try encoder.encode(orderRequest)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.networkError
+        }
+        
+        switch httpResponse.statusCode {
+        case 200, 201:
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode(OrderModel.self, from: data)
+        case 401:
+            throw NetworkError.authenticationError
+        case 403:
+            throw NetworkError.unauthorized
+        default:
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("Order creation error: \(errorString)")
+            }
+            throw NetworkError.serverError(httpResponse.statusCode)
+        }
+    }
+    
+    func getOrders(email: String) async throws -> [OrderModel] {
+        var components = URLComponents(string: "\(baseURL)/orders")!
+        components.queryItems = [URLQueryItem(name: "customer", value: email)]
+        
+        guard let url = components.url else {
+            throw NetworkError.invalidURL
+        }
+        
+        let request = createAuthRequest(for: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.networkError
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode([OrderModel].self, from: data)
+        case 401:
+            throw NetworkError.authenticationError
+        case 403:
+            throw NetworkError.unauthorized
         default:
             throw NetworkError.serverError(httpResponse.statusCode)
         }

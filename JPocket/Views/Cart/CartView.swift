@@ -20,7 +20,7 @@ struct CartView: View {
 //                if isLoading {
 //                    ProgressView()
 //                } else
-                if cartViewModel.cartItems.isEmpty {
+                if cartViewModel.items.isEmpty {
                     EmptyCartView()
                 } else {
                     cartContent
@@ -44,7 +44,7 @@ struct CartView: View {
     private var cartContent: some View {
         VStack(spacing: 0) {
             List {
-                ForEach(cartViewModel.cartItems) { item in
+                ForEach(cartViewModel.items) { item in
                     CartItemRow(item: item)
                 }
                 .onDelete(perform: removeItems)
@@ -83,7 +83,7 @@ struct CartView: View {
     
     private func removeItems(at offsets: IndexSet) {
         offsets.forEach { index in
-            let item = cartViewModel.cartItems[index]
+            let item = cartViewModel.items[index]
             cartViewModel.removeFromCart(product: item.product)
         }
     }
